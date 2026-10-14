@@ -1,0 +1,27 @@
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "budget-review"
+version = "0.1.0"
+description = "Review Beancount expenses against budget envelopes"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "beancount>=3.0,<4.0",
+    "tabulate==0.10.0"
+]
+[project.optional-dependencies]
+test = [
+    "pytest==9.1.1"
+]
+[project.scripts]
+budget-review = "budget_review.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
