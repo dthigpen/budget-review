@@ -1,5 +1,9 @@
 from decimal import Decimal
 from tabulate import tabulate
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .budget import BudgetResult, BudgetExpense
 
 
 def fmt_money(x, round_to_whole=False):
@@ -33,3 +37,74 @@ def table(rows, headers):
 def print_table(rows, headers):
     print(tabulate(rows, headers=headers, tablefmt='github'))
     print()
+
+
+def print_budget_report(result: 'BudgetResult'):
+    """Print a budget report from a BudgetResult."""
+    from .beancount_util import short_account
+
+    print()
+    print('=== SUMMARY ===')
+    print()
+
+    summary_rows = [
+        [
+            envelope,
+            total,
+        ]
+        for envelope, total in sorted(
+            result.totals.items(),
+            key=lambda e: e[1],
+            reverse=True,
+        )
+    ]
+
+    print_table(
+        summary_rows,
+        ['Envelope', 'Total'],
+    )
+
+    print()
+    print('=== DETAILS ===')
+
+    for envelope_name, expenses in sorted(
+        result.categorized.items(),
+        key=lambda e: result.totals[e[0]],
+        reverse=True,
+    ):
+        total = result.totals[envelope_name]
+
+        print()
+        print('=' * 80)
+        print(f'{envelope_name} (${total:.2f})')
+        print('=' * 80)
+
+        rows = []
+
+        for expense in sorted(
+            expenses,
+            key=lambda e: e.transaction.date,
+        ):
+            rows.append(
+                [
+                    expense.transaction.date.isoformat(),
+                    expense.transaction.narration[:10].strip(),
+                    short_account(expense.funding_account),
+                    short_account(expense.posting.account),
+                    expense.allocated_amount,
+                ]
+            )
+
+        if rows:
+            print_table(
+                rows,
+                [
+                    'Date',
+                    'Description',
+                    'Funding',
+                    'Expense Account',
+                    'Amount',
+                ],
+            )
+        else:
+            print('(no transactions)')
