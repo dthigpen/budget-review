@@ -23,6 +23,11 @@ def main() -> int:
         required=True,
         help="Path to the Beancount ledger.",
     )
+    parser.add_argument(
+        "--show-excluded",
+        action="store_true",
+        help="Show transactions excluded from the budget period.",
+    )
 
     args = parser.parse_args()
 
@@ -33,7 +38,7 @@ def main() -> int:
         if not path.is_file():
             parser.error(f"{name} file does not exist: {path}")
 
-    run(args.budget, args.ledger)
+    run(args.budget, args.ledger, show_excluded=args.show_excluded)
     return 0
 
 

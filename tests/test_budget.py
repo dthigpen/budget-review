@@ -222,92 +222,169 @@ class TestExpenseInBudgetPeriod:
 
     def test_expense_in_period(self):
         """Expense date falls within budget period."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
         expense = self.make_budget_expense('2024-06-15', 'Assets:Checking')
 
         assert expense_in_budget_period(expense, budget) is True
 
     def test_expense_before_period(self):
         """Expense date before budget period."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
         expense = self.make_budget_expense('2023-12-31', 'Assets:Checking')
 
         assert expense_in_budget_period(expense, budget) is False
 
     def test_expense_after_period(self):
         """Expense date after budget period."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
         expense = self.make_budget_expense('2025-01-01', 'Assets:Checking')
 
         assert expense_in_budget_period(expense, budget) is False
 
     def test_expense_on_start_date(self):
         """Expense on the start date is included."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
         expense = self.make_budget_expense('2024-01-01', 'Assets:Checking')
 
         assert expense_in_budget_period(expense, budget) is True
 
     def test_expense_on_end_date(self):
         """Expense on the end date is included."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
         expense = self.make_budget_expense('2024-12-31', 'Assets:Checking')
 
         assert expense_in_budget_period(expense, budget) is True
 
     def test_funding_account_not_in_budget(self):
         """Funding account not defined in budget configuration."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
         expense = self.make_budget_expense('2024-06-15', 'Assets:Savings')
+
+        assert expense_in_budget_period(expense, budget) is False
+
+    def test_expense_in_budget_period_with_budget_config(self):
+        """Test with BudgetConfig TypedDict structure."""
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
+                'Assets:Checking': {
+                    'start': date(2024, 1, 1),
+                    'end': date(2024, 12, 31),
+                }
+            },
+            period=None,
+        )
+        expense = self.make_budget_expense('2024-06-15', 'Assets:Checking')
+
+        assert expense_in_budget_period(expense, budget) is True
+
+    def test_calendar_month_mode_expense_in_period(self):
+        """Calendar-month mode includes expenses in overall period."""
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts=None,
+            period={
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 31),
+            },
+        )
+        expense = self.make_budget_expense('2024-01-15', 'Assets:Checking')
+
+        assert expense_in_budget_period(expense, budget) is True
+
+    def test_calendar_month_mode_expense_outside_period(self):
+        """Calendar-month mode excludes expenses outside overall period."""
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts=None,
+            period={
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 31),
+            },
+        )
+        expense = self.make_budget_expense('2024-02-15', 'Assets:Checking')
 
         assert expense_in_budget_period(expense, budget) is False
 
     def test_multiple_accounts(self):
         """Correctly filters based on specific funding account."""
-        budget = {
-            'accounts': {
+        from budget_review.budget import BudgetConfig
+
+        budget = BudgetConfig(
+            envelopes={},
+            accounts={
                 'Assets:Checking': {
                     'start': date(2024, 1, 1),
                     'end': date(2024, 12, 31),
@@ -316,8 +393,9 @@ class TestExpenseInBudgetPeriod:
                     'start': date(2024, 6, 1),
                     'end': date(2024, 12, 31),
                 }
-            }
-        }
+            },
+            period=None,
+        )
 
         # Expense in May is only in Checking's period
         expense_may = self.make_budget_expense('2024-05-15', 'Assets:Checking')
@@ -362,6 +440,8 @@ class TestValidateBudgetConfig:
         validated = validate_budget_config(config)
         assert 'envelopes' in validated
         assert 'accounts' in validated
+        assert validated['accounts'] is not None
+        assert validated['period'] is None
         assert validated['accounts']['Assets:Checking']['start'] == date(2024, 1, 1)
         assert validated['accounts']['Assets:Checking']['end'] == date(2024, 12, 31)
 
@@ -379,8 +459,8 @@ class TestValidateBudgetConfig:
         with pytest.raises(KeyError, match="Missing required field: 'envelopes'"):
             validate_budget_config(config)
 
-    def test_missing_accounts(self):
-        """Missing 'accounts' field raises KeyError."""
+    def test_missing_accounts_and_period(self):
+        """Missing both 'accounts' and 'period' raises ValueError."""
         config = {
             'envelopes': {
                 'Groceries': {
@@ -390,7 +470,31 @@ class TestValidateBudgetConfig:
             },
         }
 
-        with pytest.raises(KeyError, match="Missing required field: 'accounts'"):
+        with pytest.raises(ValueError, match="Must specify either 'accounts' or 'period'"):
+            validate_budget_config(config)
+
+    def test_both_accounts_and_period(self):
+        """Specifying both 'accounts' and 'period' raises ValueError."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'accounts': {
+                'Assets:Checking': {
+                    'start': '2024-01-01',
+                    'end': '2024-12-31',
+                },
+            },
+            'period': {
+                'start': '2024-01-01',
+                'end': '2024-12-31',
+            },
+        }
+
+        with pytest.raises(ValueError, match="Cannot specify both 'accounts' and 'period'"):
             validate_budget_config(config)
 
     def test_invalid_date_format(self):
@@ -492,3 +596,156 @@ class TestValidateBudgetConfig:
         validated = validate_budget_config(config)
         assert validated['envelopes']['Misc']['tags'] == []
         assert validated['envelopes']['Misc']['accounts'] == []
+
+    def test_calendar_month_mode(self):
+        """Valid calendar-month mode configuration with dict format."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': {
+                'start': '2024-01-01',
+                'end': '2024-01-31',
+            },
+        }
+
+        validated = validate_budget_config(config)
+        assert validated['accounts'] is None
+        assert validated['period'] is not None
+        assert validated['period']['start'] == date(2024, 1, 1)
+        assert validated['period']['end'] == date(2024, 1, 31)
+
+    def test_calendar_month_year_month_format(self):
+        """Valid calendar-month mode with year-month string format."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': '2024-01',
+        }
+
+        validated = validate_budget_config(config)
+        assert validated['accounts'] is None
+        assert validated['period'] is not None
+        assert validated['period']['start'] == date(2024, 1, 1)
+        assert validated['period']['end'] == date(2024, 1, 31)
+
+    def test_calendar_month_year_month_february(self):
+        """Year-month format handles February correctly."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': '2024-02',
+        }
+
+        validated = validate_budget_config(config)
+        assert validated['period']['start'] == date(2024, 2, 1)
+        assert validated['period']['end'] == date(2024, 2, 29)  # 2024 is leap year
+
+    def test_calendar_month_year_month_february_non_leap(self):
+        """Year-month format handles non-leap year February."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': '2023-02',
+        }
+
+        validated = validate_budget_config(config)
+        assert validated['period']['start'] == date(2023, 2, 1)
+        assert validated['period']['end'] == date(2023, 2, 28)  # 2023 is not leap year
+
+    def test_calendar_month_year_month_december(self):
+        """Year-month format handles December correctly."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': '2024-12',
+        }
+
+        validated = validate_budget_config(config)
+        assert validated['period']['start'] == date(2024, 12, 1)
+        assert validated['period']['end'] == date(2024, 12, 31)
+
+    def test_calendar_month_invalid_year_month_format(self):
+        """Invalid year-month format raises ValueError."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': '2024/01',
+        }
+
+        with pytest.raises(ValueError, match="Invalid period format"):
+            validate_budget_config(config)
+
+    def test_calendar_month_invalid_month(self):
+        """Invalid month in year-month format raises ValueError."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': '2024-13',
+        }
+
+        with pytest.raises(ValueError):
+            validate_budget_config(config)
+
+    def test_calendar_month_invalid_date(self):
+        """Invalid date in calendar-month mode raises ValueError."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': {
+                'start': '2024-13-01',
+                'end': '2024-01-31',
+            },
+        }
+
+        with pytest.raises(ValueError, match="Invalid 'start' date in 'period'"):
+            validate_budget_config(config)
+
+    def test_calendar_month_start_after_end(self):
+        """Start after end in calendar-month mode raises ValueError."""
+        config = {
+            'envelopes': {
+                'Groceries': {
+                    'tags': ['groceries'],
+                    'accounts': ['Expenses:Food:Groceries'],
+                },
+            },
+            'period': {
+                'start': '2024-01-31',
+                'end': '2024-01-01',
+            },
+        }
+
+        with pytest.raises(ValueError, match="Start date .* is after end date"):
+            validate_budget_config(config)

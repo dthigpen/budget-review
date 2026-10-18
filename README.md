@@ -8,24 +8,40 @@ An opinionated tool for reviewing Beancount expenses against budget envelopes.
 
 ```bash
 budget-review --budget budget.json --ledger ledger.bean
+budget-review --budget budget.json --ledger ledger.bean --show-excluded
 ```
 
-### Python API
-
-```python
-from budget_review import review_budget, print_budget_report
-
-result = review_budget(
-    budget_path="budget.json",
-    ledger_path="ledger.bean",
-)
-
-print_budget_report(result)
-```
+The `--show-excluded` flag displays transactions that fall outside the budget period.
 
 ## Budget Configuration
 
-The budget JSON file defines envelope categories and funding account periods:
+The budget JSON file defines envelope categories and budget periods. Two modes are supported:
+
+### Calendar-Month Mode
+
+For conventional calendar-month budgeting:
+
+```json
+{
+  "period": "2026-01",
+  "envelopes": {
+    "Groceries": {
+      "tags": ["groceries"],
+      "accounts": ["Expenses:Food:Groceries"]
+    },
+    "Dining": {
+      "tags": ["dining", "restaurant"],
+      "accounts": ["Expenses:Food:Dining"]
+    }
+  }
+}
+```
+
+The `period` can be specified as a year-month string (`"2026-01"`) or as a dictionary with start/end dates (`{"start": "2026-01-01", "end": "2026-01-31"}`). In this mode, all transactions within the overall period are included regardless of funding account.
+
+### Account-Period Mode (Advanced)
+
+For users with funding accounts that have different budget cycles:
 
 ```json
 {
@@ -43,10 +59,16 @@ The budget JSON file defines envelope categories and funding account periods:
     "Assets:Checking:Budget": {
       "start": "2024-01-01",
       "end": "2024-12-31"
+    },
+    "Assets:Savings:Emergency": {
+      "start": "2024-06-01",
+      "end": "2024-12-31"
     }
   }
 }
 ```
+
+In account-period mode, expenses are included based on their funding account's specific budget period. You must specify either `period` or `accounts`, but not both.
 
 Expense matching priority:
 1. Posting metadata (`budget: envelope-name`)
@@ -54,12 +76,28 @@ Expense matching priority:
 3. Account prefix
 4. Falls back to "Uncategorized"
 
+### Python API
+
+```python
+from budget_review import review_budget, print_budget_report
+
+result = review_budget(
+    budget_path="budget.json",
+    ledger_path="ledger.bean",
+)
+
+print_budget_report(result, show_excluded=True)
+```
+
 ## Example Output
 
 ```
-Min start date: 2024-01-01
-Expenses in range: 142
-Expenses in budget period: 138
+=== BUDGET PERIOD ===
+
+Overall: 2024-01-01 to 2024-12-31
+
+Account periods:
+  Checking:Budget: 2024-01-01 to 2024-12-31
 
 === SUMMARY ===
 
@@ -68,6 +106,9 @@ Envelope      Total
 Groceries    850.42
 Dining       423.15
 Uncategorized  12.50
+
+Expenses in date range: 142
+Expenses in budget period: 138
 
 === DETAILS ===
 
