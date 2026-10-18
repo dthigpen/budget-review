@@ -70,6 +70,19 @@ For users with funding accounts that have different budget cycles:
 
 In account-period mode, expenses are included based on their funding account's specific budget period. You must specify either `period` or `accounts`, but not both.
 
+## Envelope Overrides
+
+You can override automatic envelope matching by adding metadata to a Beancount posting:
+
+```
+2024-01-05 * "Weekly shop"
+  Expenses:Food:Groceries  125.30 USD
+    budget: "Groceries"
+  Assets:Checking:Budget  -125.30 USD
+```
+
+The `budget` metadata key on the expense posting forces the expense into the specified envelope, taking priority over tag and account matching.
+
 Expense matching priority:
 1. Posting metadata (`budget: envelope-name`)
 2. Transaction tags
